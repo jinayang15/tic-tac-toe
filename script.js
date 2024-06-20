@@ -4,6 +4,7 @@ const Game = (function () {
   let player2;
 
   const displayBoard = function () {
+    console.log("Current Board");
     for (let i = 0; i < gameboard.length; i++) {
       let row = "";
       for (let j = 0; j < gameboard[0].length; j++) {
@@ -14,7 +15,7 @@ const Game = (function () {
         }
         row += "|";
       }
-      row.slice(0, -1);
+      row = row.slice(0, -1);
       console.log(row);
       if (i < gameboard.length - 1) {
         console.log("-----");
@@ -22,7 +23,13 @@ const Game = (function () {
     }
   };
 
-  const playTurn = function (player) {
+  const playTurn = function () {
+    let player;
+    if (player1.isTurn()) player = player1;
+    else player = player2;
+
+    console.log(`${player.getName()}'s Turn`);
+
     let row = Number(prompt("Please enter the row: "));
     let col = Number(prompt("Please enter the column: "));
     while (gameboard[row][col].isOccupied()) {
@@ -47,6 +54,7 @@ const Game = (function () {
     const player2Symbol = prompt("Please enter player 2 symbol: ");
     player1 = createPlayer(player1Name, player1Symbol);
     player2 = createPlayer(player2Name, player2Symbol);
+    player1.setTurn(true);
   };
 
   const checkWinner = function () {
@@ -55,7 +63,25 @@ const Game = (function () {
     return winner;
   };
 
-  return { displayBoard, playTurn, changeTurn, addPlayers, checkWinner };
+  const checkFullGrid = function () {
+    for (let i = 0; i < gameboard.length; i++) {
+      for (let j = 0; j < gameboard[i].length; j++) {
+        if (!gameboard[i][j].isOccupied()) {
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
+  return {
+    displayBoard,
+    playTurn,
+    changeTurn,
+    addPlayers,
+    checkWinner,
+    checkFullGrid,
+  };
 })();
 
 function createGameboard(rows, cols) {
@@ -81,7 +107,7 @@ function checkRow(gameboard) {
       ) {
         break;
       }
-      if (j == gameboard[i].length - 1) return gameboard[i][j];
+      if (j == gameboard[i].length - 1) return gameboard[i][j].getOccupiedBy();
     }
   }
   return;
@@ -96,7 +122,7 @@ function checkColumn(gameboard) {
       ) {
         break;
       }
-      if (i == gameboard[0].length - 1) return gameboard[i][j];
+      if (i == gameboard[0].length - 1) return gameboard[i][j].getOccupiedBy();
     }
   }
   return;
@@ -110,7 +136,7 @@ function checkDiagonal(gameboard) {
     ) {
       break;
     }
-    if (i == gameboard.length - 1) return gameboard[i][i];
+    if (i == gameboard.length - 1) return gameboard[i][i].getOccupiedBy();
   }
   for (let i = 1; i < gameboard.length; i++) {
     const colIdx = gameboard.length - i - 1;
@@ -121,7 +147,7 @@ function checkDiagonal(gameboard) {
     ) {
       break;
     }
-    if (i == gameboard.length - 1) return gameboard[i][colIdx];
+    if (i == gameboard.length - 1) return gameboard[i][colIdx].getOccupiedBy();
   }
   return;
 }
@@ -163,6 +189,21 @@ function createPlayer(name, symbol) {
   };
 }
 
-function main() {}
+function main() {
+  Game.addPlayers();
+  let winner = Game.checkWinner();
+  let fullGrid = Game.checkFullGrid();
+  
+  while (!winner && !fullGrid) {
+    Game.displayBoard();
+    Game.playTurn();
+    winner = Game.checkWinner();
+    fullGrid = Game.checkFullGrid();
+  }
+  Game.displayBoard();
+
+  if (winner) console.log(`${winner.getName()} wins!`);
+  else if (fullGrid) console.log("Game is a tie!");
+}
 
 main();

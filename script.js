@@ -1,45 +1,23 @@
+// I feel like I have no idea what I am doing with CSS and how to organize it
+// Am I allowed to IIFE within an IIFE?
+
 const Game = (function () {
-  const gameboard = createGameboard(3, 3);
+  let gameboard = createGameboard(3, 3);
   let player1;
   let player2;
 
-  const displayBoard = function () {
-    console.log("Current Board");
-    for (let i = 0; i < gameboard.length; i++) {
-      let row = "";
-      for (let j = 0; j < gameboard[0].length; j++) {
-        if (gameboard[i][j].isOccupied()) {
-          row += gameboard[i][j].getOccupiedBy().getSymbol();
-        } else {
-          row += " ";
-        }
-        row += "|";
-      }
-      row = row.slice(0, -1);
-      console.log(row);
-      if (i < gameboard.length - 1) {
-        console.log("-----");
-      }
-    }
+  const getGameboard = () => gameboard;
+
+  const resetGameboard = () => {
+    gameboard = createGameboard(3, 3);
   };
 
-  const playTurn = function () {
-    let player;
-    if (player1.isTurn()) player = player1;
-    else player = player2;
+  const getPlayer1 = () => player1;
+  const getPlayer2 = () => player2;
 
-    console.log(`${player.getName()}'s Turn`);
-
-    let row = Number(prompt("Please enter the row: "));
-    let col = Number(prompt("Please enter the column: "));
-    while (gameboard[row][col].isOccupied()) {
-      console.log("That spot is occupied!");
-      row = Number(prompt("Please enter the row: "));
-      col = Number(prompt("Please enter the column: "));
-    }
-    gameboard[row][col].setOccupied(true);
-    gameboard[row][col].setOccupiedBy(player);
-    changeTurn();
+  const getWhosTurn = () => {
+    if (player1.isTurn()) return player1;
+    return player2;
   };
 
   const changeTurn = function () {
@@ -48,21 +26,23 @@ const Game = (function () {
   };
 
   const addPlayers = function () {
-    const player1Name = prompt("Please enter player 1 name: ");
-    const player1Symbol = prompt("Please enter player 1 symbol: ");
-    const player2Name = prompt("Please enter player 2 name: ");
-    const player2Symbol = prompt("Please enter player 2 symbol: ");
-    player1 = createPlayer(player1Name, player1Symbol);
-    player2 = createPlayer(player2Name, player2Symbol);
+    // const player1Name = prompt("Please enter player 1 name: ");
+    // const player1Symbol = prompt("Please enter player 1 symbol: ");
+    // const player2Name = prompt("Please enter player 2 name: ");
+    // const player2Symbol = prompt("Please enter player 2 symbol: ");
+    player1 = createPlayer("Player 1", "X");
+    player2 = createPlayer("Player 2", "O");
     player1.setTurn(true);
   };
 
+  // checks for a winner
   const checkWinner = function () {
     const winner =
       checkRow(gameboard) || checkColumn(gameboard) || checkDiagonal(gameboard);
     return winner;
   };
 
+  // checks if grid is full
   const checkFullGrid = function () {
     for (let i = 0; i < gameboard.length; i++) {
       for (let j = 0; j < gameboard[i].length; j++) {
@@ -75,8 +55,11 @@ const Game = (function () {
   };
 
   return {
-    displayBoard,
-    playTurn,
+    getGameboard,
+    resetGameboard,
+    getPlayer1,
+    getPlayer2,
+    getWhosTurn,
     changeTurn,
     addPlayers,
     checkWinner,
@@ -84,16 +67,120 @@ const Game = (function () {
   };
 })();
 
+const Display = (function () {
+  const displayText = document.querySelector(".display-text");
+  const gameboardBlocks = document.querySelectorAll(".gameboard-block");
+  const newGameButton = document.querySelector(".new-game");
+
+  newGameButton.addEventListener("click", () => {
+    Game.resetGameboard();
+    updateBoard();
+  });
+
+  const addBlockListeners = function () {
+    gameboardBlocks.forEach((block) => {
+      block.addEventListener("click", () => {
+        const row = block.dataset.row;
+        const col = block.dataset.col;
+        const gameboard = Game.getGameboard();
+        if (!gameboard[row][col].isOccupied()) {
+          gameboard[row][col].setOccupied(true);
+          gameboard[row][col].setOccupiedBy(Game.getWhosTurn());
+          updateBoard();
+
+          const winner = Game.checkWinner();
+          const fullGrid = Game.checkFullGrid();
+          if (!winner && !fullGrid) {
+            Game.changeTurn();
+            displayTurn();
+          } else {
+            if (winner) changeDisplayText(`${winner.getName()} wins!`);
+            else if (fullGrid) changeDisplayText("Game is a tie!");
+          }
+        }
+      });
+    });
+  };
+
+  const updateBoard = function () {
+    const gameboard = Game.getGameboard();
+    for (let i = 0; i < gameboard.length; i++) {
+      for (let j = 0; j < gameboard[i].length; j++) {
+        if (gameboard[i][j].isOccupied()) {
+          const gameboardBlock = document.querySelector(
+            `.gameboard-block[data-row="${i}"][data-col="${j}"]`
+          );
+          gameboardBlock.textContent = gameboard[i][j]
+            .getOccupiedBy()
+            .getSymbol();
+        }
+      }
+    }
+  };
+
+  const displayTurn = function () {
+    const player = Game.getWhosTurn();
+    changeDisplayText(`${player.getName()}'s Turn`);
+  };
+
+  const changeDisplayText = function (text) {
+    displayText.textContent = text;
+  };
+
+  return { addBlockListeners, updateBoard, displayTurn, changeDisplayText };
+})();
+
 function createGameboard(rows, cols) {
   const gameboard = [];
   for (let i = 0; i < rows; i++) {
     const row = [];
     for (let j = 0; j < cols; j++) {
-      row.push(createBlock());
+      row.push(createBlock(i, j));
     }
     gameboard.push(row);
   }
   return gameboard;
+}
+
+function createBlock(row, col) {
+  let occupied = false; // bool
+  let occupiedBy; // Player
+  const getRow = () => row;
+  const getCol = () => col;
+  const isOccupied = () => occupied;
+  const setOccupied = function (bool) {
+    occupied = bool;
+  };
+  const getOccupiedBy = () => occupiedBy;
+  const setOccupiedBy = function (player) {
+    occupiedBy = player;
+  };
+
+  return {
+    getRow,
+    getCol,
+    isOccupied,
+    setOccupied,
+    getOccupiedBy,
+    setOccupiedBy,
+  };
+}
+
+function createPlayer(name, symbol) {
+  let turn = false;
+  const getName = () => name;
+  const getSymbol = () => symbol;
+  const isTurn = () => turn;
+  const setTurn = function (bool) {
+    turn = bool;
+  };
+
+  return {
+    getName,
+    getSymbol,
+    isTurn,
+    setTurn,
+  };
 }
 
 // return undefined for no win
@@ -152,58 +239,9 @@ function checkDiagonal(gameboard) {
   return;
 }
 
-function createBlock() {
-  let occupied = false; // bool
-  let occupiedBy; // Player
-  const isOccupied = () => occupied;
-  const setOccupied = function (bool) {
-    occupied = bool;
-  };
-  const getOccupiedBy = () => occupiedBy;
-  const setOccupiedBy = function (player) {
-    occupiedBy = player;
-  };
-
-  return {
-    isOccupied,
-    setOccupied,
-    getOccupiedBy,
-    setOccupiedBy,
-  };
-}
-
-function createPlayer(name, symbol) {
-  let turn = false;
-  const getName = () => name;
-  const getSymbol = () => symbol;
-  const isTurn = () => turn;
-  const setTurn = function (bool) {
-    turn = bool;
-  };
-
-  return {
-    getName,
-    getSymbol,
-    isTurn,
-    setTurn,
-  };
-}
-
 function main() {
   Game.addPlayers();
-  let winner = Game.checkWinner();
-  let fullGrid = Game.checkFullGrid();
-  
-  while (!winner && !fullGrid) {
-    Game.displayBoard();
-    Game.playTurn();
-    winner = Game.checkWinner();
-    fullGrid = Game.checkFullGrid();
-  }
-  Game.displayBoard();
-
-  if (winner) console.log(`${winner.getName()} wins!`);
-  else if (fullGrid) console.log("Game is a tie!");
+  Display.addBlockListeners();
 }
 
 main();

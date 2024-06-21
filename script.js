@@ -2,15 +2,19 @@
 // Am I allowed to IIFE within an IIFE?
 
 const Game = (function () {
-  let gameboard = createGameboard(3, 3);
+  let gameboard;
   let player1;
   let player2;
 
-  const getGameboard = () => gameboard;
-
-  const resetGameboard = () => {
+  const newGame = () => {
     gameboard = createGameboard(3, 3);
+    Game.addPlayers();
+    Display.addBlockListeners();
+    Display.updateBoard();
+    Display.displayTurn();
   };
+
+  const getGameboard = () => gameboard;
 
   const getPlayer1 = () => player1;
   const getPlayer2 = () => player2;
@@ -54,9 +58,15 @@ const Game = (function () {
     return true;
   };
 
+  const checkGameEnd = function () {
+    const winner = Game.checkWinner();
+    const fullGrid = Game.checkFullGrid();
+    return winner || fullGrid;
+  };
+
   return {
+    newGame,
     getGameboard,
-    resetGameboard,
     getPlayer1,
     getPlayer2,
     getWhosTurn,
@@ -64,18 +74,16 @@ const Game = (function () {
     addPlayers,
     checkWinner,
     checkFullGrid,
+    checkGameEnd,
   };
 })();
 
 const Display = (function () {
   const displayText = document.querySelector(".display-text");
   const gameboardBlocks = document.querySelectorAll(".gameboard-block");
-  const newGameButton = document.querySelector(".new-game");
+  const newGameButton = document.querySelector(".new-game.button");
 
-  newGameButton.addEventListener("click", () => {
-    Game.resetGameboard();
-    updateBoard();
-  });
+  newGameButton.addEventListener("click", Game.newGame);
 
   const addBlockListeners = function () {
     gameboardBlocks.forEach((block) => {
@@ -83,7 +91,7 @@ const Display = (function () {
         const row = block.dataset.row;
         const col = block.dataset.col;
         const gameboard = Game.getGameboard();
-        if (!gameboard[row][col].isOccupied()) {
+        if (!gameboard[row][col].isOccupied() && !Game.checkGameEnd()) {
           gameboard[row][col].setOccupied(true);
           gameboard[row][col].setOccupiedBy(Game.getWhosTurn());
           updateBoard();
@@ -106,13 +114,15 @@ const Display = (function () {
     const gameboard = Game.getGameboard();
     for (let i = 0; i < gameboard.length; i++) {
       for (let j = 0; j < gameboard[i].length; j++) {
+        const gameboardBlock = document.querySelector(
+          `.gameboard-block[data-row="${i}"][data-col="${j}"]`
+        );
         if (gameboard[i][j].isOccupied()) {
-          const gameboardBlock = document.querySelector(
-            `.gameboard-block[data-row="${i}"][data-col="${j}"]`
-          );
           gameboardBlock.textContent = gameboard[i][j]
             .getOccupiedBy()
             .getSymbol();
+        } else {
+          gameboardBlock.textContent = "";
         }
       }
     }
@@ -240,8 +250,7 @@ function checkDiagonal(gameboard) {
 }
 
 function main() {
-  Game.addPlayers();
-  Display.addBlockListeners();
+  Game.newGame();
 }
 
 main();

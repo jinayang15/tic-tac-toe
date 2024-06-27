@@ -136,6 +136,11 @@ body {
   color: var(--dark-grey);
 }
 
+.winning {
+  background-color: var(--dark-grey);
+  color: var(--white);
+}
+
 .buttons-container {
   display: flex;
   flex-direction: column;

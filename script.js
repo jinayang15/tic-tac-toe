@@ -1,6 +1,7 @@
 // I feel like I have no idea what I am doing with CSS and how to organize it
-// Am I allowed to IIFE within an IIFE?
 
+// Game object
+// in charge of game functions
 const Game = (function () {
   let gameboard;
   let player1;
@@ -9,6 +10,7 @@ const Game = (function () {
   const newGame = () => {
     gameboard = createGameboard(3, 3);
     Game.addPlayers();
+    Display.removeWin();
     Display.addBlockListeners();
     Display.updateBoard();
     Display.displayTurn();
@@ -78,6 +80,8 @@ const Game = (function () {
   };
 })();
 
+// Display object
+// controls all the display related functions
 const Display = (function () {
   const displayText = document.querySelector(".display-text");
   const gameboardBlocks = document.querySelectorAll(".gameboard-block");
@@ -102,8 +106,10 @@ const Display = (function () {
             Game.changeTurn();
             displayTurn();
           } else {
-            if (winner) changeDisplayText(`${winner.getName()} wins!`);
-            else if (fullGrid) changeDisplayText("Game is a tie!");
+            if (winner) {
+              changeDisplayText(`${winner.getWinner().getName()} wins!`);
+              displayWin(winner);
+            } else if (fullGrid) changeDisplayText("Game is a tie!");
           }
         }
       });
@@ -133,13 +139,41 @@ const Display = (function () {
     changeDisplayText(`${player.getName()}'s Turn`);
   };
 
+  const displayWin = function (winner) {
+    if (winner) {
+      const winBlocks = winner.getWinBlocks();
+      winBlocks.forEach((block) => {
+        const gameboardBlock = document.querySelector(
+          `.gameboard-block[data-row="${block.getRow()}"][data-col="${block.getCol()}"]`
+        );
+        gameboardBlock.classList.add("winning");
+      });
+    }
+  };
+
+  const removeWin = function () {
+    const gameboardBlocks = document.querySelectorAll(".gameboard-block");
+    gameboardBlocks.forEach((block) => {
+      block.classList.remove("winning");
+    });
+  };
+
   const changeDisplayText = function (text) {
     displayText.textContent = text;
   };
 
-  return { addBlockListeners, updateBoard, displayTurn, changeDisplayText };
+  return {
+    addBlockListeners,
+    updateBoard,
+    displayTurn,
+    displayWin,
+    removeWin,
+    changeDisplayText,
+  };
 })();
 
+// creates a gameboard (2D array of Block objects)
+// Number rows, Number cols
 function createGameboard(rows, cols) {
   const gameboard = [];
   for (let i = 0; i < rows; i++) {
@@ -152,6 +186,9 @@ function createGameboard(rows, cols) {
   return gameboard;
 }
 
+// Block object factory function
+// creates a block object thats stored in the gameboard
+// Number row, Number col
 function createBlock(row, col) {
   let occupied = false; // bool
   let occupiedBy; // Player
@@ -176,6 +213,9 @@ function createBlock(row, col) {
   };
 }
 
+// Player object factory function
+// creates a player for the game
+// String name, String symbol
 function createPlayer(name, symbol) {
   let turn = false;
   const getName = () => name;
@@ -193,10 +233,23 @@ function createPlayer(name, symbol) {
   };
 }
 
+// Winner object factory function
+// stores player and the winning blocks
+// Player player, Array[Block] winBlocks
+function createWinner(player, winBlocks) {
+  const getWinner = () => player;
+  const getWinBlocks = () => winBlocks;
+  return {
+    getWinner,
+    getWinBlocks,
+  };
+}
+
 // return undefined for no win
-// return symbol for win
+// return player for win
 function checkRow(gameboard) {
   for (let i = 0; i < gameboard.length; i++) {
+    const winBlocks = [gameboard[i][0]];
     for (let j = 1; j < gameboard[i].length; j++) {
       if (
         !gameboard[i][j].isOccupied() ||
@@ -204,14 +257,21 @@ function checkRow(gameboard) {
       ) {
         break;
       }
-      if (j == gameboard[i].length - 1) return gameboard[i][j].getOccupiedBy();
+      winBlocks.push(gameboard[i][j]);
+      if (j == gameboard[i].length - 1) {
+        const player = gameboard[i][j].getOccupiedBy();
+        return createWinner(player, winBlocks);
+      }
     }
   }
   return;
 }
 
+// return undefined for no win
+// return player for win
 function checkColumn(gameboard) {
   for (let j = 0; j < gameboard[0].length; j++) {
+    const winBlocks = [gameboard[0][j]];
     for (let i = 1; i < gameboard.length; i++) {
       if (
         !gameboard[i][j].isOccupied() ||
@@ -219,24 +279,36 @@ function checkColumn(gameboard) {
       ) {
         break;
       }
-      if (i == gameboard[0].length - 1) return gameboard[i][j].getOccupiedBy();
+      winBlocks.push(gameboard[i][j]);
+      if (i == gameboard[0].length - 1) {
+        const player = gameboard[i][j].getOccupiedBy();
+        return createWinner(player, winBlocks);
+      }
     }
   }
   return;
 }
 
+// return undefined for no win
+// return player for win
 function checkDiagonal(gameboard) {
   for (let i = 1; i < gameboard.length; i++) {
+    const winBlocks = [gameboard[0][0]];
     if (
       !gameboard[i][i].isOccupied() ||
       gameboard[i - 1][i - 1].getOccupiedBy() != gameboard[i][i].getOccupiedBy()
     ) {
       break;
     }
-    if (i == gameboard.length - 1) return gameboard[i][i].getOccupiedBy();
+    winBlocks.push(gameboard[i][i]);
+    if (i == gameboard.length - 1) {
+      const player = gameboard[i][i].getOccupiedBy();
+      return createWinner(player, winBlocks);
+    }
   }
   for (let i = 1; i < gameboard.length; i++) {
     const colIdx = gameboard.length - i - 1;
+    const winBlocks = [gameboard[0][gameboard.length - 1]];
     if (
       !gameboard[i][colIdx].isOccupied() ||
       gameboard[i - 1][colIdx + 1].getOccupiedBy() !=
@@ -244,7 +316,11 @@ function checkDiagonal(gameboard) {
     ) {
       break;
     }
-    if (i == gameboard.length - 1) return gameboard[i][colIdx].getOccupiedBy();
+    winBlocks.push(gameboard[i][colIdx]);
+    if (i == gameboard.length - 1) {
+      const player = gameboard[i][colIdx].getOccupiedBy();
+      return createWinner(player, winBlocks);
+    }
   }
   return;
 }

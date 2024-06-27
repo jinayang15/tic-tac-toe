@@ -292,8 +292,8 @@ function checkColumn(gameboard) {
 // return undefined for no win
 // return player for win
 function checkDiagonal(gameboard) {
+  let winBlocks = [gameboard[0][0]];
   for (let i = 1; i < gameboard.length; i++) {
-    const winBlocks = [gameboard[0][0]];
     if (
       !gameboard[i][i].isOccupied() ||
       gameboard[i - 1][i - 1].getOccupiedBy() != gameboard[i][i].getOccupiedBy()
@@ -306,9 +306,9 @@ function checkDiagonal(gameboard) {
       return createWinner(player, winBlocks);
     }
   }
+  winBlocks = [gameboard[0][gameboard.length - 1]];
   for (let i = 1; i < gameboard.length; i++) {
     const colIdx = gameboard.length - i - 1;
-    const winBlocks = [gameboard[0][gameboard.length - 1]];
     if (
       !gameboard[i][colIdx].isOccupied() ||
       gameboard[i - 1][colIdx + 1].getOccupiedBy() !=

@@ -9,7 +9,9 @@ const Game = (function () {
 
   const newGame = () => {
     gameboard = createGameboard(3, 3);
-    Game.addPlayers();
+    Game.setPlayer1(localStorage.getItem("player_1"), "X");
+    Game.setPlayer2(localStorage.getItem("player_2"), "O");
+    player1.setTurn(true);
     Display.removeWin();
     Display.addBlockListeners();
     Display.updateBoard();
@@ -19,26 +21,22 @@ const Game = (function () {
   const getGameboard = () => gameboard;
 
   const getPlayer1 = () => player1;
+  const setPlayer1 = (name, symbol) => {
+    player1 = createPlayer(name, symbol);
+  };
   const getPlayer2 = () => player2;
+  const setPlayer2 = (name, symbol) => {
+    player2 = createPlayer(name, symbol);
+  };
 
   const getWhosTurn = () => {
     if (player1.isTurn()) return player1;
     return player2;
   };
 
-  const changeTurn = function () {
+  const changeTurn = () => {
     player1.setTurn(!player1.isTurn());
     player2.setTurn(!player2.isTurn());
-  };
-
-  const addPlayers = function () {
-    // const player1Name = prompt("Please enter player 1 name: ");
-    // const player1Symbol = prompt("Please enter player 1 symbol: ");
-    // const player2Name = prompt("Please enter player 2 name: ");
-    // const player2Symbol = prompt("Please enter player 2 symbol: ");
-    player1 = createPlayer("Player 1", "X");
-    player2 = createPlayer("Player 2", "O");
-    player1.setTurn(true);
   };
 
   // checks for a winner
@@ -70,10 +68,11 @@ const Game = (function () {
     newGame,
     getGameboard,
     getPlayer1,
+    setPlayer1,
     getPlayer2,
+    setPlayer2,
     getWhosTurn,
     changeTurn,
-    addPlayers,
     checkWinner,
     checkFullGrid,
     checkGameEnd,
